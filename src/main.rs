@@ -183,6 +183,7 @@ async fn main() {
             mb.add(pb.clone());
 
             downloads.push((
+                pb.clone(),
                 volume.clone(),
                 tokio::spawn(async move { download_task(volume, pb).await }),
             ));
@@ -193,10 +194,13 @@ async fn main() {
 
     let mut errors = vec![];
     let mut documents = vec![];
-    for (volume, task) in downloads {
+    for (pb, volume, task) in downloads {
         match task.await.unwrap() {
             Ok(d) => documents.push((volume, d)),
-            Err(e) => errors.push((volume, e)),
+            Err(e) => {
+                mb.remove(&pb);
+                errors.push((volume, e));
+            }
         }
     }
 
@@ -211,6 +215,8 @@ async fn main() {
         if let Err(e) = doc.save(&path) {
             eprintln!("Failed to write document to {path:?}: {e}");
         }
+
+        println!("{} has been saved to {:?}", vol.name(), path);
     }
 
     for (vol, error) in errors {
