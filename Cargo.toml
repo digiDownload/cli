@@ -1,0 +1,18 @@
+[package]
+name = "cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+digi_download_core = { git = "https://github.com/digiDownload/digiDownload.git" }
+#digi_download_core = { path = "../core" }
+dirs = "5.0.1"
+email_address = "0.2.9"
+indicatif = "0.17.9"
+inquire = "0.7.5"
+tokio = { version = "1.36.0", features = [
+    "rt",
+    "rt-multi-thread",
+    "macros",
+    "sync",
+] }
