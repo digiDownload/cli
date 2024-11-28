@@ -17,7 +17,7 @@ use tokio::sync::Semaphore;
 mod state;
 mod validator;
 
-static CONCURRENT_DOWNLOADS: Semaphore = Semaphore::const_new(8);
+static CONCURRENT_DOWNLOADS: Semaphore = Semaphore::const_new(16);
 
 async fn download_task(volume: Arc<Volume>, pb: ProgressBar) -> Result<Document, ScraperError> {
     let scraper = Arc::new(volume.get_scraper().await.map_err(ScraperError::Request)?);
@@ -45,7 +45,7 @@ async fn download_task(volume: Arc<Volume>, pb: ProgressBar) -> Result<Document,
                         send.send(Ok((p, i))).unwrap();
                     }
                     Err(e) => {
-                        send.send(Result::Err(e)).unwrap();
+                        send.send(Err(e)).unwrap();
                     }
                 };
                 drop(_myperm);
@@ -54,11 +54,11 @@ async fn download_task(volume: Arc<Volume>, pb: ProgressBar) -> Result<Document,
     });
 
     let mut merge_doc = None;
-    let mut to_merge = vec![];
+    let mut to_merge = Vec::with_capacity(32);
     let mut merge_next = 1;
 
-    while let Some(res) = recv.recv().await
-        && merge_next <= page_count
+    while merge_next <= page_count
+        && let Some(res) = recv.recv().await
     {
         let (page, i) = res?;
         pb.inc(1);
@@ -82,7 +82,7 @@ async fn download_task(volume: Arc<Volume>, pb: ProgressBar) -> Result<Document,
                     .iter()
                     .enumerate()
                     .find(|(_, (_, i))| *i == merge_next)
-                    .map(|x| x.0)
+                    .map(|(x, _)| x)
                 else {
                     break;
                 };
@@ -159,14 +159,14 @@ async fn main() {
     .progress_chars("#*-");
 
     for book in selected_books {
-        let title = format!("Choose volume of {book}:");
-
         let volumes = book
             .get_volumes()
             .await
             .expect("should be able to get volumes");
 
         let x = if volumes.len() > 1 {
+            let title = format!("Choose volume of {book}:");
+
             MultiSelect::new(&title, volumes)
                 .prompt()
                 .expect("should be able to select volumes")
@@ -198,7 +198,7 @@ async fn main() {
         match task.await.unwrap() {
             Ok(d) => documents.push((volume, d)),
             Err(e) => {
-                mb.remove(&pb);
+                pb.abandon_with_message(format!("Failed: {}", volume.name()));
                 errors.push((volume, e));
             }
         }
