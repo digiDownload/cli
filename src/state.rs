@@ -12,10 +12,12 @@ pub struct State {
 }
 
 fn get_state_file() -> io::Result<PathBuf> {
-    let mut state = dirs::state_dir().ok_or(io::Error::new(
-        io::ErrorKind::Other,
-        "couldn't identify state directory",
-    ))?;
+    let mut state = dirs::state_dir()
+        .or_else(dirs::cache_dir)
+        .ok_or(io::Error::new(
+            io::ErrorKind::Other,
+            "couldn't identify state directory",
+        ))?;
 
     state.push("digi_download");
 
