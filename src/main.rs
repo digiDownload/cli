@@ -13,6 +13,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use inquire::{MultiSelect, Password, Text};
 use state::State;
 use tokio::sync::Semaphore;
+use validator::NonEmptyValidator;
 
 mod state;
 mod validator;
@@ -146,6 +147,7 @@ async fn main() {
     books.sort_unstable_by_key(|x| u16::MAX - x.year());
 
     let selected_books = MultiSelect::new("Choose the book:", books)
+        .with_validator(NonEmptyValidator)
         .prompt()
         .expect("should be able to select books");
 
