@@ -206,7 +206,7 @@ async fn main() {
         }
     }
 
-    for (vol, mut doc) in documents {
+    for (vol, doc) in &mut documents {
         // TODO: regex whitespace etc
         let mut file = vol.name().replace(['.', '+'], "").replace(' ', "_");
         file.push_str(".pdf");
@@ -219,6 +219,19 @@ async fn main() {
         }
 
         println!("{} has been saved to {:?}", vol.name(), path);
+    }
+
+    if !documents.is_empty() {
+        let should_open = inquire::Confirm::new("Open output directory?")
+            .with_default(true)
+            .prompt()
+            .expect("should be able to get confirm input");
+
+        if should_open {
+            if let Err(e) = open::that(out_dir) {
+                eprintln!("Failed to open output directory: {e}");
+            }
+        }
     }
 
     for (vol, error) in errors {

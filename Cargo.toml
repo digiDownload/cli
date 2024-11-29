@@ -10,6 +10,7 @@ dirs = "5.0.1"
 email_address = { version = "0.2.9", default-features = false }
 indicatif = "0.17.9"
 inquire = "0.7.5"
+open = "5.3.1"
 tokio = { version = "1.36.0", features = [
     "rt",
     "rt-multi-thread",
