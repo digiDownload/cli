@@ -16,3 +16,7 @@ tokio = { version = "1.36.0", features = [
     "macros",
     "sync",
 ] }
+
+[[bin]]
+name = "digidownload"
+path = "src/main.rs"
