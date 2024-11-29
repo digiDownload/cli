@@ -4,7 +4,7 @@ use std::{io, sync::Arc};
 
 use digi_download_core::{
     digi4school::{session::Session, volume::Volume},
-    error::ScraperError,
+    error::{LoginError, ScraperError},
     lopdf::Document,
     merge_pdf,
 };
@@ -123,21 +123,33 @@ async fn main() {
         }
     }
 
-    let email = Text::new("Enter your E-Mail:")
-        .with_validator(validator::EmailValidator)
-        .with_autocomplete(state.clone())
-        .prompt()
-        .expect("should be able to get email input");
+    let mut email;
+    let session = loop {
+        email = Text::new("Enter your E-Mail:")
+            .with_validator(validator::EmailValidator)
+            .with_autocomplete(state.clone())
+            .prompt()
+            .expect("should be able to get email input");
 
-    let password = Password::new("Enter your password:")
-        .with_display_mode(inquire::PasswordDisplayMode::Masked)
-        .without_confirmation()
-        .prompt()
-        .expect("should be able to get password input");
+        let password = Password::new("Enter your password:")
+            .with_display_mode(inquire::PasswordDisplayMode::Masked)
+            .without_confirmation()
+            .prompt()
+            .expect("should be able to get password input");
 
-    let session = Session::new(email.clone(), password)
-        .await
-        .expect("should be able to log in");
+        match Session::new(email.clone(), password).await {
+            Ok(s) => break s,
+            Err(e) => match e {
+                LoginError::BadLogin => {
+                    eprintln!("Error: Email or password incorrect!\n")
+                }
+                LoginError::Reqwest(error) => {
+                    eprintln!("Network error while logging in: {error}");
+                    std::process::exit(1);
+                }
+            },
+        }
+    };
 
     let mut books = session
         .get_books()
