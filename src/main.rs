@@ -1,5 +1,3 @@
-#![feature(let_chains)]
-
 use std::{io, sync::Arc};
 
 use digi_download_core::{
@@ -58,9 +56,10 @@ async fn download_task(volume: Arc<Volume>, pb: ProgressBar) -> Result<Document,
     let mut to_merge = Vec::with_capacity(32);
     let mut merge_next = 1;
 
-    while merge_next <= page_count
-        && let Some(res) = recv.recv().await
-    {
+    while merge_next <= page_count {
+        let Some(res) = recv.recv().await else {
+            break;
+        };
         let (page, i) = res?;
         pb.inc(1);
 
